@@ -23,7 +23,8 @@ it works on both NVIDIA (via NVML) and AMD (via ROCm SMI).
 
 `GPUStats` fields:
 
-- `memory` (`MemoryStats`): `used_bytes`, plus total/free/reserved.
+- `memory` (`MemoryStats | None`): `used_bytes`, plus total/free/reserved, or
+  `None` when the driver reports no memory info (such as NVML on DGX Spark).
 - `utilization` (`UtilizationStats`): `gpu_usage_percent` (0–100 compute
   busy) and `memory_activity_percent` (memory-controller activity, or `None`
   if the vendor doesn't report it).
@@ -42,10 +43,13 @@ from max.profiler.gpu import GPUDiagContext
 with GPUDiagContext() as ctx:
     for gpu_id, s in ctx.get_stats().items():
         # used_bytes / 1e9 is approximate GB (decimal); use / 2**30 for GiB.
-        print(
-            f"{gpu_id}: {s.utilization.gpu_usage_percent}% compute, "
-            f"{s.memory.used_bytes / 1e9:.1f} GB used"
-        )
+        if s.memory is not None:
+            print(
+                f"{gpu_id}: {s.utilization.gpu_usage_percent}% compute, "
+                f"{s.memory.used_bytes / 1e9:.1f} GB used"
+            )
+        else:  # driver reports no memory info, such as NVML on DGX Spark
+            print(f"{gpu_id}: {s.utilization.gpu_usage_percent}% compute")
 ```
 
 This prints one line per GPU, for example `nv0: 87% compute, 14.2 GB used`.

@@ -49,7 +49,8 @@ def _summarize(samples: list[dict]) -> None:
                 gpu_id, {"util": [], "mem": [], "throttles": set()}
             )
             g["util"].append(s.utilization.gpu_usage_percent)
-            g["mem"].append(s.memory.used_bytes)
+            if s.memory is not None:
+                g["mem"].append(s.memory.used_bytes)
             clocks = getattr(s, "clocks", None)
             for reason in getattr(clocks, "throttle_reasons", None) or []:
                 # gpu_idle is normal between samples; don't alarm on it.
@@ -62,9 +63,9 @@ def _summarize(samples: list[dict]) -> None:
         util = g["util"]
         peak = max(util)
         mean = sum(util) / len(util)
-        peak_mem = max(g["mem"]) / 1e9
+        peak_mem = f"{max(g['mem']) / 1e9:.1f}" if g["mem"] else "N/A"
         throttles = ", ".join(sorted(g["throttles"])) or "-"
-        print(f"{gpu_id:<6}{peak:>7}{mean:>7.0f}{peak_mem:>15.1f}  {throttles}")
+        print(f"{gpu_id:<6}{peak:>7}{mean:>7.0f}{peak_mem:>15}  {throttles}")
 
     # One-line verdict to orient the reader.
     best = max(per_gpu.values(), key=lambda g: max(g["util"]))
