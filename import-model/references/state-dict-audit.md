@@ -30,6 +30,24 @@ tensors include a vision tower in a text-only port, or a
 multi-token-prediction head the port doesn't serve. The audit raises on the
 first kind and ignores the second by prefix.
 
+## Where the parameter names come from
+
+`parameters` walks the module as a tree and yields each tensor under its
+dotted attribute path, so the names the audit compares are the same names
+`load_state_dict()` and `compile(weights=...)` look for. Call the walk
+directly when the audit needs the paths as a set:
+
+```python
+from max import tree
+
+parameter_names = set(tree.paths(nn_model, leaf=Tensor))
+```
+
+`leaf=Tensor` stops the walk at tensors, which is the set the audit compares
+against. Drop the argument and the same call also yields the module's
+non-tensor attributes, such as a quantization config or an integer constant,
+and those are not parameters.
+
 ## Generic implementation
 
 Add this function to your slug's ``model.py``:
